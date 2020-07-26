@@ -1,32 +1,33 @@
 package com.drumpads24.markkhakimulin.ui.tracklist
 
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.drumpads24.markkhakimulin.data.model.TrackInfo
 import com.drumpads24.markkhakimulin.data.repository.TrackListRepository
-import kotlinx.coroutines.*
+import com.drumpads24.markkhakimulin.util.Coroutines.ioThenMain
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+
 
 class TrackListViewModel(
     private val repository: TrackListRepository): ViewModel() {
+    private val mCurrentTrack :MutableLiveData<TrackInfo> = MutableLiveData<TrackInfo>()
+    val currentTrack: MutableLiveData<TrackInfo>
+        get() = mCurrentTrack
 
-    private val _currentTrackInfo: MutableLiveData<TrackInfo?> by lazy {
-        MutableLiveData<TrackInfo?>()
-    }
-    val currentTrackInfo: MutableLiveData<TrackInfo?>
-        get() = _currentTrackInfo
-
-    private val _tracks = MutableLiveData<ArrayList<TrackInfo>>()
-    val tracks: LiveData<ArrayList<TrackInfo>>
+    private var _tracks : MutableLiveData<ArrayList<TrackInfo>>  =
+         MutableLiveData<ArrayList<TrackInfo>>()
+    val tracks: MutableLiveData<ArrayList<TrackInfo>>
         get() = _tracks
 
     private lateinit var job: Job
 
-
     fun getTracklist() {
+        if (tracks.value == null)
             job = ioThenMain(
                 { repository.getTracklist() },
-                {_tracks.value = it }
+                { _tracks.value = it }
             )
         }
 
@@ -35,36 +36,65 @@ class TrackListViewModel(
             if(::job.isInitialized) job.cancel()
         }
 
-        fun<T: Any> ioThenMain(work: suspend (() -> T?), callback: ((T?)->Unit)) =
-            CoroutineScope(Dispatchers.Main).launch {
-            val data = CoroutineScope(Dispatchers.IO).async  rt@{
-                return@rt work()
-            }.await()
-            callback(data)
+
+    fun setCurrentTrackInfo(index: Int) {
+
+        if (currentTrack.value != null) {
+            //pause/play current track
+            playPauseCurrentTrack(false)
         }
 
-    fun updateTrackInfo(trackInfo: TrackInfo) {
+        val mTrack = if (index>0) {
+            tracks.value!![index]
+        } else null
 
-        for (i:TrackInfo in _tracks.value!!) {
-            if (! trackInfo.equals(i)) {
-                i.isPlaying = false
+        if (mTrack != currentTrack.value) {
+
+            //the following cycle is for recycler view binding update only
+            for (ti:TrackInfo in tracks.value!!){
+                ti.isPlaying = false
+            }
+            //
+
+            currentTrack.value  = mTrack
+            if (mTrack != null) {
+                playPauseCurrentTrack(true)
             } else {
-                i.isPlaying = trackInfo.isPlaying
+                viewModelScope.launch {
+                    repository.stop()
+                }
             }
         }
-        _tracks.value = _tracks.value;
     }
 
-    fun setCurrentTrackInfo(trackInfo: TrackInfo?) {
-        _currentTrackInfo.value = trackInfo
+
+    fun stopCurrentTrack() {
+        setCurrentTrackInfo(-1)
     }
 
-    fun switchStopPlayCurrentTrackInfo() {
-        if (_currentTrackInfo.value != null) {
-            _currentTrackInfo.value!!.isPlaying = !_currentTrackInfo.value!!.isPlaying
-            setCurrentTrackInfo(_currentTrackInfo.value)
-            updateTrackInfo(_currentTrackInfo.value!!)
+    fun playPauseCurrentTrack(isNew:Boolean) {
+
+        if (isNew) {
+            viewModelScope.launch {
+                repository.stop()
+                repository.play(currentTrack.value!!.audio, null)
+            }
+            currentTrack.value!!.isAudioLoading = true
+        } else {
+
+            if (currentTrack.value!!.isPlaying) {
+                viewModelScope.launch {
+                    repository.pause()
+                }
+
+            } else {
+                viewModelScope.launch {
+                    repository.resume()
+                }
+            }
         }
+        currentTrack.value!!.isPlaying = !currentTrack.value!!.isPlaying
+        currentTrack.value?.notifyChange()
 
     }
 }

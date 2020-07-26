@@ -4,5 +4,5 @@ import android.view.View
 import com.drumpads24.markkhakimulin.data.model.TrackInfo
 
 interface TrackClickListener {
-    fun onRecyclerViewItemClick(view: View, trackInfo: TrackInfo)
+    fun onRecyclerViewItemClick(position: Int)
 }

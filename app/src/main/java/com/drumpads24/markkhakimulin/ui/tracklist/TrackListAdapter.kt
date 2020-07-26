@@ -2,30 +2,27 @@ package com.drumpads24.markkhakimulin.ui.tracklist
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.ImageView
-import androidx.databinding.BindingAdapter
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.RecyclerView
-import coil.api.load
-import coil.transform.CircleCropTransformation
+import coil.Coil
+import coil.api.get
 import com.drumpads24.markkhakimulin.R
-import com.drumpads24.markkhakimulin.data.model.TrackInfo
 import com.drumpads24.markkhakimulin.databinding.TrackListItemBinding
+import com.drumpads24.markkhakimulin.util.Coroutines
 
 class TrackListAdapter (
-    private var tracks: List<TrackInfo>,
+    private var viewModel: TrackListViewModel,
     private val listener: TrackClickListener
 ) : RecyclerView.Adapter<TrackListAdapter.TrackListHolder>(){
 
-    fun updateTrackList(updatedTracks: List<TrackInfo>) {
-        tracks = updatedTracks
-        notifyDataSetChanged()
+    init {
+        setHasStableIds(true)
     }
 
     override fun getItemId(position: Int): Long {
         return position.toLong()
     }
-    override fun getItemCount() = tracks.size
+    override fun getItemCount() =viewModel.tracks.value?.size?:0
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TrackListHolder {
 
@@ -37,40 +34,28 @@ class TrackListAdapter (
                 false
             )
         )
-
     }
 
     override fun onBindViewHolder(holder: TrackListHolder, position: Int) {
 
-            holder.trackListItemBinding.trackInfo  = tracks[position]
+        viewModel.tracks.value?.let {
+            holder.trackListItemBinding.trackInfo = it[position]
+            holder.trackListItemBinding.imageLoaded = false
+            holder.trackListItemBinding.executePendingBindings()
 
-            holder.trackListItemBinding.imageButton.setOnClickListener {
-
-                tracks[position].isPlaying = !tracks[position].isPlaying
-
-                listener.onRecyclerViewItemClick(
-                    holder.trackListItemBinding.imageButton,
-                    tracks[position]
-                )
-            }
+            Coroutines.ioThenMain(
+                { Coil.get(it[position].image)},
+                { holder.trackListItemBinding.imageView.setImageDrawable(it)
+                    holder.trackListItemBinding.imageLoaded = true}
+            )
+        }
+        holder.trackListItemBinding.imageButton.setOnClickListener {
+            listener.onRecyclerViewItemClick(position)
+        }
     }
 
     inner class TrackListHolder(
         val trackListItemBinding: TrackListItemBinding
     ) : RecyclerView.ViewHolder(trackListItemBinding.root)
-
-
-    companion object{
-        @BindingAdapter("image")
-        @JvmStatic
-        fun loadImage(view: ImageView, url: String){
-            view.load(url) {
-                crossfade(true)
-                //placeholder(R.drawable.no_image)
-                //transformations(CircleCropTransformation())
-            }
-        }
-    }
-
 
 }

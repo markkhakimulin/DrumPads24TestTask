@@ -5,17 +5,17 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
-import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.*
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.drumpads24.markkhakimulin.R
 import com.drumpads24.markkhakimulin.data.model.TrackInfo
 import com.drumpads24.markkhakimulin.data.repository.TrackListRepository
+import com.drumpads24.markkhakimulin.databinding.FragmentPlayerBinding
+import com.drumpads24.markkhakimulin.databinding.TrackListFragmentBinding
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.CollapsingToolbarLayout
 import kotlinx.android.synthetic.main.track_list_fragment.*
@@ -25,13 +25,13 @@ class TrackListFragment : Fragment() ,TrackClickListener{
 
     private lateinit var viewModel: TrackListViewModel
     private lateinit var factory: TrackListViewModelFactory
-    lateinit var layout: CollapsingToolbarLayout
+    private lateinit var binding: TrackListFragmentBinding
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.track_list_fragment, container, false)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        binding = DataBindingUtil.inflate(
+            inflater, R.layout.track_list_fragment, container, false
+        )
+        return binding.root
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
@@ -42,29 +42,30 @@ class TrackListFragment : Fragment() ,TrackClickListener{
 
         viewModel = ViewModelProviders.of(requireActivity(),factory).get(TrackListViewModel::class.java)
 
+        val mLifecycleOwner :TrackClickListener = this
+        binding.trackList = viewModel
+        binding.lifecycleOwner = this
+
+        binding.recyclerViewTracks
+            .apply {
+                adapter = TrackListAdapter(viewModel, mLifecycleOwner)
+                layoutManager = LinearLayoutManager(activity)
+            }
+        binding.recyclerViewTracks.setHasFixedSize(true)
+
         viewModel.getTracklist()
 
-        viewModel.tracks.observe(viewLifecycleOwner, Observer { tracks ->
-            recycler_view_tracks.also {
-                if (it.adapter == null) {
-                    it.layoutManager = LinearLayoutManager(activity)
-                    it.setHasFixedSize(true)
-                    val adapter = TrackListAdapter(tracks, this)
-                    adapter.setHasStableIds(true)
-                    it.adapter = adapter
-                } else {
-                    val adapter:TrackListAdapter = it.adapter as TrackListAdapter
-                    adapter.updateTrackList(tracks)
-                }
-            }
-        })
-        viewModel.currentTrackInfo.observe(viewLifecycleOwner, Observer {
+        viewModel.currentTrack.observe(viewLifecycleOwner, Observer {
 
-            if (viewModel.currentTrackInfo.value == null) {
+            if (viewModel.currentTrack.value ==  null) {
                 hidePlayer()
             } else {
-                viewModel.updateTrackInfo(it!!)
+                binding.recyclerViewTracks
+                    .apply {
+                       adapter?.notifyDataSetChanged()
+                    }
             }
+
         })
 
         hidePlayer()
@@ -100,12 +101,11 @@ class TrackListFragment : Fragment() ,TrackClickListener{
         toolbarLayout.layoutParams = params
     }
 
-    override fun onRecyclerViewItemClick(view: View, trackInfo: TrackInfo) {
+    override fun onRecyclerViewItemClick(position: Int) {
 
         showPlayer()
-        viewModel.setCurrentTrackInfo(trackInfo)
-        viewModel.updateTrackInfo(trackInfo)
-        Toast.makeText(requireContext(), "${trackInfo.id} clicked", Toast.LENGTH_LONG).show();
+        viewModel.setCurrentTrackInfo(position)
+        Toast.makeText(requireContext(), "${position} clicked", Toast.LENGTH_LONG).show();
     }
 
 }

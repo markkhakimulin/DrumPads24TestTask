@@ -6,10 +6,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import com.drumpads24.markkhakimulin.R
-import com.drumpads24.markkhakimulin.data.model.TrackInfo
 import com.drumpads24.markkhakimulin.databinding.FragmentPlayerBinding
 import com.drumpads24.markkhakimulin.ui.tracklist.TrackListViewModel
 import kotlinx.android.synthetic.main.fragment_player.*
@@ -23,17 +21,16 @@ class PlayerFragment : Fragment() {
         super.onActivityCreated(savedInstanceState)
 
         viewModel = ViewModelProviders.of(requireActivity()).get(TrackListViewModel::class.java)
-        viewModel.currentTrackInfo.observe(viewLifecycleOwner, Observer {
-            if (it != null)
-                binding.trackInfo = it
-        })
+        binding.trackList = viewModel
+        binding.lifecycleOwner = this
+
         closeButton.setOnClickListener {
-            viewModel.switchStopPlayCurrentTrackInfo()
-            viewModel.setCurrentTrackInfo(null)
+            viewModel.stopCurrentTrack()
         }
         imageButton.setOnClickListener {
-            viewModel.switchStopPlayCurrentTrackInfo()
+            viewModel.playPauseCurrentTrack(false)
         }
+
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {

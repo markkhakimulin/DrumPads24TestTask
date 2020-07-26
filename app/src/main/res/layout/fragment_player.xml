@@ -8,8 +8,8 @@
         <import
             type="android.view.View"/>
         <variable
-            name="trackInfo"
-            type="com.drumpads24.markkhakimulin.data.model.TrackInfo"/>
+            name="trackList"
+            type="com.drumpads24.markkhakimulin.ui.tracklist.TrackListViewModel"/>
 
     </data>
 
@@ -25,7 +25,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_marginTop="8dp"
-                android:text="@{@string/now_playing(trackInfo.name)}"
+                android:text="@{@string/now_playing(trackList.currentTrack.name)}"
                 android:textColor="@android:color/white"
                 app:layout_constraintEnd_toStartOf="@+id/closeButton"
                 app:layout_constraintStart_toEndOf="@+id/imageButton"
@@ -41,11 +41,11 @@
                 android:layout_marginBottom="8dp"
                 android:background="@android:color/transparent"
                 android:contentDescription="@string/todo"
-                android:src="@{trackInfo.isPlaying?@drawable/exo_icon_pause:@drawable/exo_icon_play}"
+                android:src="@{trackList.currentTrack.playing?@android:drawable/ic_media_pause:@android:drawable/ic_media_play}"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                tools:src="@drawable/exo_icon_play" />
+                tools:src="@android:drawable/ic_media_play" />
 
             <ProgressBar
                 android:id="@+id/progressBar"

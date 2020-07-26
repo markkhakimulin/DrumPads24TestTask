@@ -1,16 +1,17 @@
 package com.drumpads24.markkhakimulin.data.model
 
-data class TrackInfo(
-    val audio: String,
-    val id: Int,
-    val image: String,
-    val name: String,
-    val path: String
-) {
-    val isEmptyAudio:Boolean = audio == ""
-    var isPlaying:Boolean = false
+import androidx.databinding.BaseObservable
+import androidx.databinding.Bindable
 
-    override fun equals(other: Any?): Boolean {
-        return id == ((other as TrackInfo).id)
-    }
+data class TrackInfo(
+    @Bindable val audio: String,
+    val id: Int,
+    @Bindable val image: String,
+    @Bindable val name: String,
+    val path: String,
+    @Bindable var isPlaying: Boolean = false,
+    @Bindable var isAudioLoading:Boolean = false
+): BaseObservable() {
+    val isEmptyAudio:Boolean = audio == ""
+    var index:Int = -1
 }
