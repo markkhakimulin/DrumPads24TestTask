@@ -13,7 +13,7 @@ import com.google.gson.reflect.TypeToken
 import java.lang.reflect.Type
 
 
-class TrackListRepository(private val context: Context?) {
+class TrackListRepository(internal val context: Context?) {
 
     private var playIntent: Intent = Intent(context, PlayBackService::class.java)
     private lateinit var playSrv: PlayBackService
@@ -48,9 +48,9 @@ class TrackListRepository(private val context: Context?) {
 
     }
 
-    suspend fun play(data:String,callback: PlayBackService.OnPrepareComplete?):Boolean {
+    suspend fun play(trackInfo: TrackInfo):Boolean {
         if (playerBounded) {
-            playSrv.play(data,callback)
+            playSrv.play(trackInfo)
         }
         return playerBounded
     }

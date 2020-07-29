@@ -1,17 +1,20 @@
 package com.drumpads24.markkhakimulin.ui.tracklist
 
+import android.widget.Toast
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.drumpads24.markkhakimulin.data.model.TrackInfo
 import com.drumpads24.markkhakimulin.data.repository.TrackListRepository
+import com.drumpads24.markkhakimulin.service.PlayBackService
 import com.drumpads24.markkhakimulin.util.Coroutines.ioThenMain
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 
 class TrackListViewModel(
-    private val repository: TrackListRepository): ViewModel() {
+    private val repository: TrackListRepository): ViewModel(),PlayBackService.PlayBackCallback {
     private val mCurrentTrack :MutableLiveData<TrackInfo> = MutableLiveData<TrackInfo>()
     val currentTrack: MutableLiveData<TrackInfo>
         get() = mCurrentTrack
@@ -27,7 +30,8 @@ class TrackListViewModel(
         if (tracks.value == null)
             job = ioThenMain(
                 { repository.getTracklist() },
-                { _tracks.value = it }
+                { _tracks.value = it },
+                { }
             )
         }
 
@@ -44,7 +48,7 @@ class TrackListViewModel(
             playPauseCurrentTrack(false)
         }
 
-        val mTrack = if (index>0) {
+        val mTrack = if (index>=0) {
             tracks.value!![index]
         } else null
 
@@ -53,6 +57,7 @@ class TrackListViewModel(
             //the following cycle is for recycler view binding update only
             for (ti:TrackInfo in tracks.value!!){
                 ti.isPlaying = false
+                ti.isAudioLoading = false
             }
             //
 
@@ -77,12 +82,16 @@ class TrackListViewModel(
         if (isNew) {
             viewModelScope.launch {
                 repository.stop()
-                repository.play(currentTrack.value!!.audio, null)
+                repository.play(currentTrack.value!!)
             }
+            currentTrack.value!!.playBackCallback = this@TrackListViewModel
             currentTrack.value!!.isAudioLoading = true
         } else {
 
             if (currentTrack.value!!.isPlaying) {
+
+                currentTrack.value!!.isAudioLoading = false
+
                 viewModelScope.launch {
                     repository.pause()
                 }
@@ -97,4 +106,26 @@ class TrackListViewModel(
         currentTrack.value?.notifyChange()
 
     }
+
+    override fun onPrepared() {
+
+        currentTrack.value?.isAudioLoading = false
+        currentTrack.value?.notifyChange()
+    }
+
+    override fun onCompleted() {
+        currentTrack.value?.isPlaying = false
+        currentTrack.value?.notifyChange()
+    }
+
+    override fun onError(trackInfo: TrackInfo,err:Any?) {
+        Toast.makeText(repository.context,
+            "can't loading ${trackInfo.name} for reason $err", Toast.LENGTH_LONG).show();
+    }
+
+    override fun onProgress(value: Int) {
+        currentTrack.value?.progress = value
+        currentTrack.value?.notifyChange()
+    }
+
 }

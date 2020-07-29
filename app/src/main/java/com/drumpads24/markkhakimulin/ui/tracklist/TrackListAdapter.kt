@@ -2,6 +2,7 @@ package com.drumpads24.markkhakimulin.ui.tracklist
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.RecyclerView
 import coil.Coil
@@ -40,19 +41,19 @@ class TrackListAdapter (
 
         viewModel.tracks.value?.let {
             holder.trackListItemBinding.trackInfo = it[position]
-            holder.trackListItemBinding.imageLoaded = false
-            holder.trackListItemBinding.executePendingBindings()
 
             Coroutines.ioThenMain(
                 { Coil.get(it[position].image)},
-                { holder.trackListItemBinding.imageView.setImageDrawable(it)
-                    holder.trackListItemBinding.imageLoaded = true}
+                { holder.trackListItemBinding.imageView.setImageDrawable(it)},
+                {
+                    /*holder.trackListItemBinding.nameText.setText(it.message)*/}
             )
         }
         holder.trackListItemBinding.imageButton.setOnClickListener {
             listener.onRecyclerViewItemClick(position)
         }
     }
+
 
     inner class TrackListHolder(
         val trackListItemBinding: TrackListItemBinding
